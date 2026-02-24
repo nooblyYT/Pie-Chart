@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Minecraft Texture Breakdown</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial, sans-serif;background:#111;color:#eee;margin:0;padding:20px}
+h1,h2{margin:6px 0;text-align:center}
+.layout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1400px;margin:auto}
+.left{min-width:0}
+canvas{background:#1a1a1a;border-radius:12px;padding:10px}
+.list{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.category{background:#1a1a1a;padding:12px;border-radius:12px}
+.category h3{margin:0 0 6px;color:#7dd3fc}
+input,select,button{width:100%;padding:8px;margin-top:6px;border-radius:8px;border:none}
+button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
+.sidebar{background:#1a1a1a;padding:14px;border-radius:12px;height:fit-content}
+.small{opacity:.7;font-size:.9em}
+.deleteBtn{margin-left:6px;background:#ef4444;color:#fff;padding:2px 6px;border-radius:6px;font-size:.75em;cursor:pointer}
+</style>
+</head>
+<body>
+<h1>Minecraft Texture Breakdown</h1>
+<div class="layout">
+
+<div class="left">
+  <canvas id="pie"></canvas>
+
+  <h2 id="sortedTitle">Sorted List</h2>
+  <input id="search" placeholder="Search blocks..." />
+  <div class="list" id="list"></div>
+</div>
+
+<div class="sidebar">
+  <h3>Add New Block</h3>
+  <div class="small">Global community list (Firebase powered)</div>
+  <input id="nameInput" placeholder="Block name" />
+  <select id="catInput"></select>
+  <button onclick="addBlock()">Submit</button>
+</div>
+
+</div>
+
+<!-- Firebase (global storage across devices) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// 🔥 TODO: Replace with your Firebase config
+const firebaseConfig = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE.firebaseapp.com",
+  projectId: "PASTE"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Base items
+const baseItems = [
+"Acacia Trapdoor","Allium","Amethyst Block","Amethyst Cluster","Andesite","Azure Bluet","Bamboo Trapdoor","Bat","Bell","Birch Leaves","Birch Log","Birch Planks","Birch Sapling","Birch Trapdoor","Black Candle","Black Candle (Lit)","Blue Candle (Lit)","Blue Ice","Blue Orchid","Bone Block","Bookshelf","Bricks","Brown Candle","Brown Candle (Lit)","Brown Mushroom","Budding Amethyst","Cactus","Candle","Carved Pumpkin","Cave Vines (Lit)","Cherry Leaves","Cherry Trapdoor","Chiseled Bookshelf","Chiseled Bookshelf (Occupied)","Chiseled Bookshelf (Top)","Cobweb","Coal Ore","Copper Ore","Cornflower","Crafting Table","Crafting Table (Front)","Crafting Table (Side)","Crafting Table (Top)","Cyan Candle","Cyan Candle (Lit)","Dandelion","Dead Bush","Deepslate","Deepslate Coal Ore","Deepslate Copper Ore","Deepslate Diamond Ore","Deepslate Emerald Ore","Deepslate Gold Ore","Deepslate Iron Ore","Deepslate Lapis Ore","Deepslate Redstone Ore","Detector Rail","Detector Rail (On)","Diamond Ore","Diorite","Dirt Path","Emerald Ore","Elytra","Farmland","Farmland (Moist)","Fern","Flower Pot","Flowering Azalea (Side)","Frosted Ice","Furnace (Front)","Furnace (Front On)","Furnace (Side)","Glass","Glow Lichen","Glowstone","Gold Ore","Grass Block (Snowy)","Grass Block Overlay","Gravel","Hay Bale","Iron Ore","Item Frame","Jigsaw Block","Lapis Ore","Large Fern","Light Blue Candle","Light Blue Glazed Terracotta","Light Gray Candle","Light Gray Candle (Lit)","Lilac","Lily of the Valley","Lime Candle","Mangrove Propagule","Mangrove Trapdoor","Melon Stem","Minecart","Moss Block","Mossy Cobblestone","Mossy Stone Bricks","Oak Leaves","Oak Log","Oak Log (Top)","Oak Planks","Oak Sapling","Oak Trapdoor","Orange Candle","Orange Candle (Lit)","Orange Tulip","Oxeye Daisy","Peony","Pink Candle","Pink Candle (Lit)","Pink Petals","Pink Tulip","Pitcher Plant","Pitcher Crop","Poppy","Powered Rail","Pumpkin","Pumpkin Stem","Rail","Red Candle","Red Candle (Lit)","Red Mushroom","Red Tulip","Redstone Dust Overlay","Rose Bush","Sand","Short Grass","Snow","Spore Blossom","Spore Blossom Base","Spruce Leaves","Spruce Log","Spruce Log (Top)","Spruce Planks","Spruce Sapling","Spruce Trapdoor","Stone Bricks","Stonecutter","Stonecutter (Side)","Stonecutter (Top)","Sugar Cane","Sunflower","Tall Grass","Torch","Torchflower","Twisting Vines","Warped Trapdoor","Wheat (All Stages)","Wither Rose","Wolf","Yellow Candle","Yellow Candle (Lit)","Yellow Glazed Terracotta"
+];
+
+let communityItems = []; // {name, category}
+
+const CATEGORY_NAMES = [
+"Items","Nature","Decoration","Building Blocks","Trapdoors","Doors","Animations","Mobs","Ores","Caves","Variant Textures","Separated Sides","Two-State Blocks","Other"
+];
+
+// fill dropdown
+const select = document.getElementById("catInput");
+CATEGORY_NAMES.forEach(c=>{
+  const o=document.createElement("option");o.value=c;o.textContent=c;select.appendChild(o);
+});
+
+function autoCapitalize(str){
+  return str.replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function categorize(name){
+  const n=name.toLowerCase();
+
+  if(n.includes("trapdoor")) return "Trapdoors";
+  if(n.includes(" door") && !n.includes("trapdoor")) return "Doors";
+  if(n.includes("ore")) return "Ores";
+  if(n==="bat"||n==="wolf") return "Mobs";
+
+  if(n.includes("stone")||n.includes("deepslate")||n.includes("andesite")||n.includes("diorite")||n.includes("gravel")||n.includes("sand")) return "Caves";
+  if(n.includes("bookshelf")) return "Variant Textures";
+  if(n.includes("(top)")||n.includes("(side)")||n.includes("(front)")) return "Separated Sides";
+  if(n.includes("(lit)")||n.includes("on)")||n.includes("moist")) return "Two-State Blocks";
+  if(n.includes("overlay")||n.includes("stages")) return "Animations";
+
+  if(n.includes("flower")||n.includes("tulip")||n.includes("rose")||n.includes("daisy")||n.includes("orchid")||n.includes("grass")||n.includes("fern")||n.includes("leaves")||n.includes("sapling")||n.includes("vines")||n.includes("mushroom")||n.includes("cactus")||n.includes("cane")||n.includes("petals")||n.includes("propagule")) return "Nature";
+
+  if(n.includes("candle")||n.includes("bell")||n.includes("terracotta")||n.includes("pumpkin")||n.includes("flower pot")||n.includes("glowstone")) return "Decoration";
+
+  if(n.includes("elytra")||n.includes("minecart")||n.includes("item frame")||n.includes("torch")||n.includes("rail")) return "Items";
+
+  if(n.includes("planks")||n.includes("log")||n.includes("brick")||n.includes("glass")||n.includes("ice")||n.includes("snow")) return "Building Blocks";
+
+  return "Other";
+}
+
+function buildCategories(){
+  const map={};
+  CATEGORY_NAMES.forEach(c=>map[c]=[]);
+
+  const combined = [...baseItems.map(n=>({name:n})), ...communityItems];
+
+  combined.forEach(obj=>{
+    const cat = obj.category || categorize(obj.name);
+    map[cat].push(obj);
+  });
+  return map;
+}
+
+let chart;
+function render(){
+  const categories=buildCategories();
+  const total = Object.values(categories).flat().length;
+  document.getElementById("sortedTitle").textContent=`Sorted List (${total})`;
+
+  const q=document.getElementById("search").value.toLowerCase();
+  const listDiv=document.getElementById("list");
+  listDiv.innerHTML="";
+
+  Object.entries(categories).forEach(([cat,arr])=>{
+    const filtered=arr.filter(x=>x.name.toLowerCase().includes(q));
+    if(!filtered.length) return;
+
+    const div=document.createElement("div");
+    div.className="category";
+
+    const listHTML = filtered.sort((a,b)=>a.name.localeCompare(b.name)).map(obj=>{
+      const isCommunity = obj.fromCommunity;
+      const label = isCommunity ? `${obj.name} (submitted by community member)` : obj.name;
+      const delBtn = isCommunity ? `<span class="deleteBtn" onclick="deleteItem('${obj.id}')">Delete</span>` : "";
+      return `<li>${label} ${delBtn}</li>`;
+    }).join("");
+
+    div.innerHTML=`<h3>${cat} (${filtered.length})</h3><ul>${listHTML}</ul>`;
+    listDiv.appendChild(div);
+  });
+
+  const labels=[];
+  const data=[];
+  Object.entries(categories).forEach(([k,v])=>{
+    if(v.length){labels.push(k);data.push(v.length);}  
+  });
+
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById('pie'),{
+    type:'pie',
+    data:{labels,datasets:[{data}]},
+    options:{
+      plugins:{
+        legend:{labels:{color:'#fff'}},
+        tooltip:{callbacks:{label:(ctx)=>{
+          const total=data.reduce((a,b)=>a+b,0);
+          const val=ctx.raw;
+          const pct=((val/total)*100).toFixed(1);
+          return `${ctx.label}: ${val} (${pct}%)`;
+        }}}
+      }
+    }
+  });
+}
+
+// FIREBASE LOAD
+async function loadCommunity(){
+  const snap = await db.collection("blocks").get();
+  communityItems = snap.docs.map(d=>({
+    id:d.id,
+    name:d.data().name,
+    category:d.data().category,
+    fromCommunity:true
+  }));
+  render();
+}
+
+async function addBlock(){
+  let name=document.getElementById("nameInput").value.trim();
+  const cat=document.getElementById("catInput").value;
+  if(!name) return alert("Enter a name");
+
+  name = autoCapitalize(name);
+
+  await db.collection("blocks").add({name,category:cat});
+  document.getElementById("nameInput").value="";
+  loadCommunity();
+}
+
+async function deleteItem(id){
+  if(!confirm("Delete this community item?")) return;
+  await db.collection("blocks").doc(id).delete();
+  loadCommunity();
+}
+
+document.getElementById("search").addEventListener("input",render);
+loadCommunity();
+</script>
+</body>
+</html>
