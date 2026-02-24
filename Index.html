@@ -23,26 +23,30 @@ button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
 <body>
 <h1>Minecraft Texture Breakdown</h1>
 <div class="layout">
-
 <div class="left">
   <canvas id="pie"></canvas>
-
   <h2 id="sortedTitle">Sorted List</h2>
   <input id="search" placeholder="Search blocks..." />
   <div class="list" id="list"></div>
 </div>
-
 <div class="sidebar">
   <h3>Add New Block</h3>
   <div class="small">Global community list (Firebase powered)</div>
   <input id="nameInput" placeholder="Block name" />
   <select id="catInput"></select>
-  <button onclick="addBlock()">Submit</button>
+  <button id="submitBtn">Submit</button>
+</div>
 </div>
 
-</div>
+<!--
+Manual test cases:
+1. Page loads → pie chart renders immediately with base items.
+2. Typing in search filters list live without errors.
+3. Clicking Submit with empty input shows alert.
+4. Clicking Submit with a valid name adds item (when Firebase is available) and updates pie chart.
+5. Deleting a community item removes it and updates chart.
+-->
 
-<!-- Firebase (modular SDK) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
@@ -63,25 +67,16 @@ button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
   const baseItems = [
     "Acacia Trapdoor","Allium","Amethyst Block","Amethyst Cluster","Andesite","Azure Bluet","Bamboo Trapdoor","Bat","Bell",
     "Birch Leaves","Birch Log","Birch Planks","Birch Sapling","Birch Trapdoor","Black Candle","Black Candle (Lit)","Blue Candle (Lit)","Blue Ice",
-    "Blue Orchid","Bone Block","Bookshelf","Bricks","Brown Candle","Brown Candle (Lit)","Brown Mushroom","Budding Amethyst","Cactus","Candle","Carved Pumpkin","Cave Vines (Lit)",
-    // ... (continue the rest of your list as before)
+    "Blue Orchid","Bone Block","Bookshelf","Bricks","Brown Candle","Brown Candle (Lit)","Brown Mushroom","Budding Amethyst","Cactus","Candle","Carved Pumpkin","Cave Vines (Lit)"
   ];
 
   let communityItems = [];
-
-  const CATEGORY_NAMES = [
-    "Items","Nature","Decoration","Building Blocks","Trapdoors","Doors","Animations","Mobs","Ores","Caves","Variant Textures","Separated Sides","Two-State Blocks","Other"
-  ];
+  const CATEGORY_NAMES = ["Items","Nature","Decoration","Building Blocks","Trapdoors","Doors","Animations","Mobs","Ores","Caves","Variant Textures","Separated Sides","Two-State Blocks","Other"];
 
   const select = document.getElementById("catInput");
-  CATEGORY_NAMES.forEach(c => {
-    const o = document.createElement("option");
-    o.value = c;
-    o.textContent = c;
-    select.appendChild(o);
-  });
+  CATEGORY_NAMES.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; select.appendChild(o); });
 
-  function autoCapitalize(str){ return str.replace(/\b\w/g, l => l.toUpperCase()); }
+  function autoCapitalize(str){ return str.replace(/\b\w/g,l => l.toUpperCase()); }
 
   function categorize(name){
     const n=name.toLowerCase();
@@ -102,13 +97,10 @@ button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
   }
 
   function buildCategories(){
-    const map={};
-    CATEGORY_NAMES.forEach(c=>map[c]=[]);
+    const map = {};
+    CATEGORY_NAMES.forEach(c => map[c]=[]);
     const combined = [...baseItems.map(n=>({name:n})), ...communityItems];
-    combined.forEach(obj=>{
-      const cat = obj.category || categorize(obj.name);
-      map[cat].push(obj);
-    });
+    combined.forEach(obj => { const cat = obj.category || categorize(obj.name); map[cat].push(obj); });
     return map;
   }
 
@@ -116,84 +108,79 @@ button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
   function render(){
     const categories = buildCategories();
     const total = Object.values(categories).flat().length;
-    document.getElementById("sortedTitle").textContent=`Sorted List (${total})`;
+    document.getElementById("sortedTitle").textContent = `Sorted List (${total})`;
 
-    const q=document.getElementById("search").value.toLowerCase();
-    const listDiv=document.getElementById("list");
-    listDiv.innerHTML="";
+    const q = document.getElementById("search").value.toLowerCase();
+    const listDiv = document.getElementById("list");
+    listDiv.innerHTML = "";
 
-    Object.entries(categories).forEach(([cat,arr])=>{
-      const filtered=arr.filter(x=>x.name.toLowerCase().includes(q));
+    Object.entries(categories).forEach(([cat, arr]) => {
+      const filtered = arr.filter(x => x.name.toLowerCase().includes(q));
       if(!filtered.length) return;
-
-      const div=document.createElement("div");
-      div.className="category";
-
+      const div = document.createElement("div");
+      div.className = "category";
       const listHTML = filtered.sort((a,b)=>a.name.localeCompare(b.name)).map(obj=>{
-        const isCommunity = obj.fromCommunity;
-        const label = isCommunity ? `${obj.name} (submitted by community member)` : obj.name;
-        const delBtn = isCommunity ? `<span class="deleteBtn" onclick="deleteItem('${obj.id}')">Delete</span>` : "";
+        const isCommunity=obj.fromCommunity;
+        const label=isCommunity ? `${obj.name} (submitted by community member)` : obj.name;
+        const delBtn = isCommunity ? `<span class=\"deleteBtn\" data-id=\"${obj.id}\">Delete</span>` : "";
         return `<li>${label} ${delBtn}</li>`;
       }).join("");
-
-      div.innerHTML=`<h3>${cat} (${filtered.length})</h3><ul>${listHTML}</ul>`;
+      div.innerHTML = `<h3>${cat} (${filtered.length})</h3><ul>${listHTML}</ul>`;
       listDiv.appendChild(div);
     });
 
-    const labels=[];
-    const data=[];
-    Object.entries(categories).forEach(([k,v])=>{
-      if(v.length){labels.push(k);data.push(v.length);}  
+    // delegate delete clicks
+    listDiv.querySelectorAll('.deleteBtn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        await deleteItem(id);
+      });
     });
 
+    const labels=[]; const data=[];
+    Object.entries(categories).forEach(([k,v])=>{if(v.length){labels.push(k);data.push(v.length);}});
+
     if(chart) chart.destroy();
-    chart=new Chart(document.getElementById('pie'),{
-      type:'pie',
-      data:{labels,datasets:[{data}]},
-      options:{
-        plugins:{
-          legend:{labels:{color:'#fff'}},
-          tooltip:{callbacks:{label:(ctx)=>{
-            const total=data.reduce((a,b)=>a+b,0);
-            const val=ctx.raw;
-            const pct=((val/total)*100).toFixed(1);
-            return `${ctx.label}: ${val} (${pct}%)`;
-          }}}
-        }
-      }
+    chart = new Chart(document.getElementById('pie'), {
+      type: 'pie',
+      data: {labels, datasets:[{data, backgroundColor:labels.map((_,i)=>`hsl(${i*30%360},70%,50%)`)}]},
+      options: { plugins:{legend:{labels:{color:'#fff'}}, tooltip:{callbacks:{label:(ctx)=>{const total=data.reduce((a,b)=>a+b,0);const val=ctx.raw;const pct=((val/total)*100).toFixed(1);return`${ctx.label}: ${val} (${pct}%)`;}}}}}
     });
   }
 
   async function loadCommunity(){
-    const snap = await getDocs(collection(db,"blocks"));
-    communityItems = snap.docs.map(d=>({
-      id:d.id,
-      name:d.data().name,
-      category:d.data().category,
-      fromCommunity:true
-    }));
-    render();
+    try{
+      const snap = await getDocs(collection(db,"blocks"));
+      communityItems = snap.docs.map(d=>({id:d.id,name:d.data().name,category:d.data().category,fromCommunity:true}));
+      render();
+    } catch(e){
+      console.log("Firebase not loaded, showing base pie chart only.");
+      render();
+    }
   }
 
   async function addBlock(){
-    let name=document.getElementById("nameInput").value.trim();
-    const cat=document.getElementById("catInput").value;
+    let name = document.getElementById("nameInput").value.trim();
+    const cat = document.getElementById("catInput").value;
     if(!name) return alert("Enter a name");
-
     name = autoCapitalize(name);
-
-    await addDoc(collection(db,"blocks"),{name,category:cat});
+    await addDoc(collection(db,"blocks"), {name, category:cat});
     document.getElementById("nameInput").value="";
-    loadCommunity();
+    await loadCommunity();
   }
 
   async function deleteItem(id){
     if(!confirm("Delete this community item?")) return;
     await deleteDoc(doc(db,"blocks",id));
-    loadCommunity();
+    await loadCommunity();
   }
 
-  document.getElementById("search").addEventListener("input",render);
+  // Bind events AFTER functions exist (fixes ReferenceError)
+  document.getElementById("submitBtn").addEventListener("click", addBlock);
+  document.getElementById("search").addEventListener("input", render);
+
+  // initial render
+  render();
   loadCommunity();
 </script>
 </body>
