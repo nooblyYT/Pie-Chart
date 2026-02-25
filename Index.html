@@ -30,7 +30,6 @@ input{width:100%;padding:8px;margin-top:10px;border-radius:8px;border:none}
       <li>Nature</li>
       <li>Foods</li>
       <li>Building Blocks</li>
-      <li>Decoration</li>
       <li>Trapdoors</li>
       <li>Animations</li>
       <li>Two-State Blocks</li>
@@ -53,54 +52,39 @@ input{width:100%;padding:8px;margin-top:10px;border-radius:8px;border:none}
 document.addEventListener("DOMContentLoaded", () => {
 
 const items = [
-// Nature
 "Allium","Azure Bluet","Blue Orchid","Cobweb","Dandelion","Glow Lichen","Moss","Oxeye Daisy","Peonies","Pitcher Plant","Poppy","Tulips (all colors)","Wheat stages 1–4","Wheat stages 5–8","Spore Blossom","Sugar Cane","Seeds","Vine","Wither Rose","Leaf Litter","Lilac","Lily of the valley",
-// Foods
 "Wheat stages 5–8",
-// Building Blocks
-"Bone Block","Dirt Block","Hay Bales","Path Block","Moss","Bone Block","Dirt Block","Hay Bales",
-// Decoration
-"Bone","Torch","Note",
-// Trapdoors
+"Bone Block","Dirt Block","Hay Bales","Path Block","Moss","Bone Block","Dirt Block","Hay Bales","Torch",
 "Jungle Trapdoor","Acacia Trapdoor","Oak Trapdoor","Spruce Trapdoor","Mangrove Trapdoor","Pale Oak Trapdoor","Warped Trapdoor","Dark Oak Trapdoor","Bamboo Trapdoor",
-// Animations
-"Glow Lichen","Block Breaking Animation","Firefly Bush Particle","Glint Particle","Health Bar","Heart Container",
-// Two-State Blocks
+"Glow Lichen","Block Breaking Animation","Firefly Bush Particle","Glint Particle","Health Bar","Heart Container","Note",
 "Eye Blossom (Open and Closed)","Candle","Candle (Lit)","Furnace (Front)","Furnace (Front On)","Furnace (Side)","Farmland (Dry)","Farmland (Moist)","Wheat stages 1–4","Wheat stages 5–8",
-// Variant Textures
 "Tulips (all colors)","Dandelion","Wheat stages 1–4","Wheat stages 5–8",
-// Items
-"Powered Rail","Rail","Detector Rails","Axolotl Bucket","Fireworks","Item Frame","Minecart","Elytra","Milk Bucket","Cookie","Book","Note","Netherite Sword","Iron Sword","Raw Cod","Raw Copper","Copper Ingot","Iron Ingot","Raw Iron","Diamond","Emerald","Gold Ingot","Raw Gold","Amethyst Shard","Amethyst Bud","Amethyst Cluster","Jigsaw Block","Christmas Chest","Seeds","Sugar Cane",
-// Separated-Sides
+"Powered Rail","Rail","Detector Rails","Axolotl Bucket","Fireworks","Item Frame","Minecart","Elytra","Milk Bucket","Cookie","Book","Netherite Sword","Iron Sword","Raw Cod","Raw Copper","Copper Ingot","Iron Ingot","Raw Iron","Diamond","Emerald","Gold Ingot","Raw Gold","Amethyst Shard","Amethyst Bud","Amethyst Cluster","Jigsaw Block","Christmas Chest","Seeds","Sugar Cane",
 "Hay Bales","Bone Block","Path Block","Dirt Block","Crafting Table Top","Crafting Table Side","Crafting Table Front","Furnace Front","Furnace Side","Stonecutter","Stonecutter Side","Stonecutter Top",
-// Other
 "Jigsaw Block",
-// Snowy Items
 "Ice","Snow","Snowball","Packed Ice","Blue Ice","Snow Golem","Snowy Grass",
-// Logs
 "Oak Log","Spruce Log","Birch Log","Cherry Log","Mangrove Log","Dark Oak Log","Acacia Log","Pale Oak Log",
-// Ores
-"Coal Ore","Iron Ore","Copper Ore","Redstone Ore","Lapis Ore","Gold Ore","Diamond Ore","Emerald Ore","Deepslate Coal Ore","Deepslate Iron Ore","Deepslate Copper Ore","Deepslate Redstone Ore","Deepslate Lapis Ore","Deepslate Gold Ore","Deepslate Diamond Ore","Deepslate Emerald Ore","Andesite","Diorite","Granite","Stone","Cobblestone","Cobbled Deepslate","Deepslate"
+"Coal Ore","Iron Ore","Copper Ore","Redstone Ore","Lapis Ore","Gold Ore","Diamond Ore","Emerald","Deepslate Coal Ore","Deepslate Iron Ore","Deepslate Copper Ore","Deepslate Redstone Ore","Deepslate Lapis Ore","Deepslate Gold Ore","Deepslate Diamond Ore","Deepslate Emerald Ore","Andesite","Diorite","Granite","Stone","Cobblestone","Cobbled Deepslate","Deepslate"
 ];
 
-const CATEGORY_NAMES = ["Nature","Foods","Building Blocks","Decoration","Trapdoors","Animations","Two-State Blocks","Variant Textures","Items","Separated-Sides","Other","Snowy Items","Entities","Effects","Terracotta","Logs","Mobs","Ores","Caves"];
+const CATEGORY_NAMES = ["Nature","Foods","Building Blocks","Trapdoors","Animations","Two-State Blocks","Variant Textures","Items","Separated-Sides","Other","Snowy Items","Entities","Effects","Terracotta","Logs","Mobs","Ores","Caves"];
 
 function categorize(name){
  const n=name.toLowerCase();
  if(["allium","azure bluet","blue orchid","cobweb","dandelion","glow lichen","moss","oxeye daisy","peonies","pitcher plant","poppy","tulips (all colors)","wheat stages 1–4","wheat stages 5–8","spore blossom","sugar cane","seeds","vine","wither rose","leaf litter","lilac","lily of the valley"].includes(n)) return "Nature";
  if(n.includes("wheat stages 5–8")) return "Foods";
- if(["bone block","dirt block","hay bales","path block"].includes(n) || n.includes("block")) return "Building Blocks";
- if(["bone","torch","note"].includes(n)) return "Decoration";
+ if(["bone block","dirt block","hay bales","path block","torch"].includes(n) || n.includes("block")) return "Building Blocks";
+ if(n === "note") return "Effects";
  if(n.includes("trapdoor")) return "Trapdoors";
  if(["glow lichen","block breaking animation","firefly bush particle","glint particle","health bar","heart container"].includes(n)) return "Animations";
  if(n.includes("eye blossom") || n.includes("candle") || n.includes("furnace") || n.includes("farmland") || n.includes("wheat stages")) return "Two-State Blocks";
  if(["tulips (all colors)","dandelion","wheat stages 1–4","wheat stages 5–8"].includes(n)) return "Variant Textures";
- if(["powered rail","rail","detector rails","axolotl bucket","fireworks","item frame","minecart","elytra","milk bucket","cookie","book","note","netherite sword","iron sword","raw cod","raw copper","copper ingot","iron ingot","raw iron","diamond","emerald","gold ingot","raw gold","amethyst shard","amethyst bud","amethyst cluster","jigsaw block","christmas chest","seeds","sugar cane"].includes(n)) return "Items";
+ if(["powered rail","rail","detector rails","axolotl bucket","fireworks","item frame","minecart","elytra","milk bucket","cookie","book","netherite sword","iron sword","raw cod","raw copper","copper ingot","iron ingot","raw iron","diamond","emerald","gold ingot","raw gold","amethyst shard","amethyst bud","amethyst cluster","jigsaw block","christmas chest","seeds","sugar cane","bone"].includes(n)) return "Items";
  if(["hay bales","bone block","path block","dirt block","crafting table top","crafting table side","crafting table front","furnace front","furnace side","stonecutter","stonecutter side","stonecutter top"].includes(n)) return "Separated-Sides";
  if(["jigsaw block"].includes(n)) return "Other";
  if(["ice","snow","snowball","packed ice","blue ice","snow golem","snowy grass"].includes(n)) return "Snowy Items";
  if(["oak log","spruce log","birch log","cherry log","mangrove log","dark oak log","acacia log","pale oak log"].includes(n)) return "Logs";
- if(["coal ore","iron ore","copper ore","redstone ore","lapis ore","gold ore","diamond ore","emerald ore","deepslate coal ore","deepslate iron ore","deepslate copper ore","deepslate redstone ore","deepslate lapis ore","deepslate gold ore","deepslate diamond ore","deepslate emerald ore","andesite","diorite","granite","stone","cobblestone","cobbled deepslate","deepslate"].includes(n)) return "Ores";
+ if(["coal ore","iron ore","copper ore","redstone ore","lapis ore","gold ore","diamond ore","emerald","deepslate coal ore","deepslate iron ore","deepslate copper ore","deepslate redstone ore","deepslate lapis ore","deepslate gold ore","deepslate diamond ore","deepslate emerald ore","andesite","diorite","granite","stone","cobblestone","cobbled deepslate","deepslate"].includes(n)) return "Ores";
  return "Other";
 }
 
