@@ -1,187 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Minecraft Texture Pie Chart</title>
+<meta charset="UTF-8">
+<title>Minecraft Sorted List & Pie Chart</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{font-family:Arial, sans-serif;background:#111;color:#eee;margin:0;padding:20px}
+body{font-family:Arial,sans-serif;background:#111;color:#eee;margin:0;padding:20px}
 h1,h2{margin:6px 0;text-align:center}
-.layout{display:grid;grid-template-columns:1fr 360px;gap:20px;max-width:1400px;margin:auto}
-.left{min-width:0}
+.layout{max-width:1400px;margin:auto;display:grid;grid-template-columns:1fr 400px;gap:20px}
 canvas{background:#1a1a1a;border-radius:12px;padding:10px}
 .list{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
 .category{background:#1a1a1a;padding:12px;border-radius:12px}
 .category h3{margin:0 0 6px;color:#7dd3fc}
-input,select,button{width:100%;padding:8px;margin-top:6px;border-radius:8px;border:none}
-button{background:#38bdf8;color:#000;font-weight:bold;cursor:pointer}
-.sidebar{background:#1a1a1a;padding:14px;border-radius:12px;height:fit-content}
-.small{opacity:.7;font-size:.9em}
-.deleteBtn{margin-left:6px;background:#ef4444;color:#fff;padding:2px 6px;border-radius:6px;font-size:.75em;cursor:pointer}
+input{width:100%;padding:8px;margin-top:10px;border-radius:8px;border:none}
 </style>
 </head>
 <body>
-<h1>Minecraft Texture Breakdown</h1>
+<h1>Minecraft Sorted List & Pie Chart</h1>
 <div class="layout">
-<div class="left">
-  <canvas id="pie"></canvas>
-  <h2 id="sortedTitle">Sorted List</h2>
-  <input id="search" placeholder="Search blocks..." />
-  <div class="list" id="list"></div>
+  <div>
+    <canvas id="chart" width="400" height="400"></canvas>
+    <h2 id="sortedTitle">Sorted List</h2>
+    <input id="search" placeholder="Search blocks..." />
+    <div class="list" id="list"></div>
+  </div>
+  <div class="sidebar">
+    <h3>Legend / Info</h3>
+    <ul>
+      <li>Nature</li>
+      <li>Foods</li>
+      <li>Building Blocks</li>
+      <li>Decoration</li>
+      <li>Trapdoors</li>
+      <li>Animations</li>
+      <li>Two-State Blocks</li>
+      <li>Variant Textures</li>
+      <li>Items</li>
+      <li>Separated-Sides</li>
+      <li>Other</li>
+      <li>Snowy Items</li>
+      <li>Entities</li>
+      <li>Effects</li>
+      <li>Terracotta</li>
+      <li>Logs</li>
+      <li>Mobs</li>
+      <li>Ores</li>
+      <li>Caves</li>
+    </ul>
+  </div>
 </div>
-<div class="sidebar">
-  <h3>Add New Block</h3>
-  <div class="small">Global community list (Firebase powered)</div>
-  <input id="nameInput" placeholder="Block name" />
-  <select id="catInput"></select>
-  <button id="submitBtn">Submit</button>
-</div>
-</div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
 
-<!--
-Manual test cases:
-1. Page loads → pie chart renders immediately with base items.
-2. Typing in search filters list live without errors.
-3. Clicking Submit with empty input shows alert.
-4. Clicking Submit with a valid name adds item (when Firebase is available) and updates pie chart.
-5. Deleting a community item removes it and updates chart.
--->
+const items = [
+// Nature
+"Allium","Azure Bluet","Blue Orchid","Cobweb","Dandelion","Glow Lichen","Moss","Oxeye Daisy","Peonies","Pitcher Plant","Poppy","Tulips (all colors)","Wheat stages 1–4","Wheat stages 5–8","Spore Blossom","Sugar Cane","Seeds","Vine","Wither Rose","Leaf Litter","Lilac","Lily of the valley",
+// Foods
+"Wheat stages 5–8",
+// Building Blocks
+"Bone Block","Dirt Block","Hay Bales","Path Block","Moss","Bone Block","Dirt Block","Hay Bales",
+// Decoration
+"Bone","Torch","Note",
+// Trapdoors
+"Jungle Trapdoor","Acacia Trapdoor","Oak Trapdoor","Spruce Trapdoor","Mangrove Trapdoor","Pale Oak Trapdoor","Warped Trapdoor","Dark Oak Trapdoor","Bamboo Trapdoor",
+// Animations
+"Glow Lichen","Block Breaking Animation","Firefly Bush Particle","Glint Particle","Health Bar","Heart Container",
+// Two-State Blocks
+"Eye Blossom (Open and Closed)","Candle","Candle (Lit)","Furnace (Front)","Furnace (Front On)","Furnace (Side)","Farmland (Dry)","Farmland (Moist)","Wheat stages 1–4","Wheat stages 5–8",
+// Variant Textures
+"Tulips (all colors)","Dandelion","Wheat stages 1–4","Wheat stages 5–8",
+// Items
+"Powered Rail","Rail","Detector Rails","Axolotl Bucket","Fireworks","Item Frame","Minecart","Elytra","Milk Bucket","Cookie","Book","Note","Netherite Sword","Iron Sword","Raw Cod","Raw Copper","Copper Ingot","Iron Ingot","Raw Iron","Diamond","Emerald","Gold Ingot","Raw Gold","Amethyst Shard","Amethyst Bud","Amethyst Cluster","Jigsaw Block","Christmas Chest","Seeds","Sugar Cane",
+// Separated-Sides
+"Hay Bales","Bone Block","Path Block","Dirt Block","Crafting Table Top","Crafting Table Side","Crafting Table Front","Furnace Front","Furnace Side","Stonecutter","Stonecutter Side","Stonecutter Top",
+// Other
+"Jigsaw Block",
+// Snowy Items
+"Ice","Snow","Snowball","Packed Ice","Blue Ice","Snow Golem","Snowy Grass",
+// Logs
+"Oak Log","Spruce Log","Birch Log","Cherry Log","Mangrove Log","Dark Oak Log","Acacia Log","Pale Oak Log",
+// Ores
+"Coal Ore","Iron Ore","Copper Ore","Redstone Ore","Lapis Ore","Gold Ore","Diamond Ore","Emerald Ore","Deepslate Coal Ore","Deepslate Iron Ore","Deepslate Copper Ore","Deepslate Redstone Ore","Deepslate Lapis Ore","Deepslate Gold Ore","Deepslate Diamond Ore","Deepslate Emerald Ore","Andesite","Diorite","Granite","Stone","Cobblestone","Cobbled Deepslate","Deepslate"
+];
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+const CATEGORY_NAMES = ["Nature","Foods","Building Blocks","Decoration","Trapdoors","Animations","Two-State Blocks","Variant Textures","Items","Separated-Sides","Other","Snowy Items","Entities","Effects","Terracotta","Logs","Mobs","Ores","Caves"];
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCjsie4y_EHKWrECxPNtJo2K0SbAxsRoug",
-    authDomain: "iateachillpil.firebaseapp.com",
-    projectId: "iateachillpil",
-    storageBucket: "iateachillpil.firebasestorage.app",
-    messagingSenderId: "410694120639",
-    appId: "1:410694120639:web:04fe55d5eb1f69866bc20a",
-    measurementId: "G-TDEHH8016X"
-  };
+function categorize(name){
+ const n=name.toLowerCase();
+ if(["allium","azure bluet","blue orchid","cobweb","dandelion","glow lichen","moss","oxeye daisy","peonies","pitcher plant","poppy","tulips (all colors)","wheat stages 1–4","wheat stages 5–8","spore blossom","sugar cane","seeds","vine","wither rose","leaf litter","lilac","lily of the valley"].includes(n)) return "Nature";
+ if(n.includes("wheat stages 5–8")) return "Foods";
+ if(["bone block","dirt block","hay bales","path block"].includes(n) || n.includes("block")) return "Building Blocks";
+ if(["bone","torch","note"].includes(n)) return "Decoration";
+ if(n.includes("trapdoor")) return "Trapdoors";
+ if(["glow lichen","block breaking animation","firefly bush particle","glint particle","health bar","heart container"].includes(n)) return "Animations";
+ if(n.includes("eye blossom") || n.includes("candle") || n.includes("furnace") || n.includes("farmland") || n.includes("wheat stages")) return "Two-State Blocks";
+ if(["tulips (all colors)","dandelion","wheat stages 1–4","wheat stages 5–8"].includes(n)) return "Variant Textures";
+ if(["powered rail","rail","detector rails","axolotl bucket","fireworks","item frame","minecart","elytra","milk bucket","cookie","book","note","netherite sword","iron sword","raw cod","raw copper","copper ingot","iron ingot","raw iron","diamond","emerald","gold ingot","raw gold","amethyst shard","amethyst bud","amethyst cluster","jigsaw block","christmas chest","seeds","sugar cane"].includes(n)) return "Items";
+ if(["hay bales","bone block","path block","dirt block","crafting table top","crafting table side","crafting table front","furnace front","furnace side","stonecutter","stonecutter side","stonecutter top"].includes(n)) return "Separated-Sides";
+ if(["jigsaw block"].includes(n)) return "Other";
+ if(["ice","snow","snowball","packed ice","blue ice","snow golem","snowy grass"].includes(n)) return "Snowy Items";
+ if(["oak log","spruce log","birch log","cherry log","mangrove log","dark oak log","acacia log","pale oak log"].includes(n)) return "Logs";
+ if(["coal ore","iron ore","copper ore","redstone ore","lapis ore","gold ore","diamond ore","emerald ore","deepslate coal ore","deepslate iron ore","deepslate copper ore","deepslate redstone ore","deepslate lapis ore","deepslate gold ore","deepslate diamond ore","deepslate emerald ore","andesite","diorite","granite","stone","cobblestone","cobbled deepslate","deepslate"].includes(n)) return "Ores";
+ return "Other";
+}
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+function render(){
+ const categories={}; CATEGORY_NAMES.forEach(c=>categories[c]=[]);
+ items.forEach(i=>categories[categorize(i)].push(i));
 
-  const baseItems = [
-    "Acacia Trapdoor","Allium","Amethyst Block","Amethyst Cluster","Andesite","Azure Bluet","Bamboo Trapdoor","Bat","Bell",
-    "Birch Leaves","Birch Log","Birch Planks","Birch Sapling","Birch Trapdoor","Black Candle","Black Candle (Lit)","Blue Candle (Lit)","Blue Ice",
-    "Blue Orchid","Bone Block","Bookshelf","Bricks","Brown Candle","Brown Candle (Lit)","Brown Mushroom","Budding Amethyst","Cactus","Candle","Carved Pumpkin","Cave Vines (Lit)"
-  ];
+ const total = items.length;
+ document.getElementById("sortedTitle").textContent = `Sorted List (${total})`;
 
-  let communityItems = [];
-  const CATEGORY_NAMES = ["Items","Nature","Decoration","Building Blocks","Trapdoors","Doors","Animations","Mobs","Ores","Caves","Variant Textures","Separated Sides","Two-State Blocks","Other"];
+ const q = document.getElementById("search").value.toLowerCase();
+ const listDiv = document.getElementById("list"); listDiv.innerHTML = "";
 
-  const select = document.getElementById("catInput");
-  CATEGORY_NAMES.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; select.appendChild(o); });
+ Object.entries(categories).forEach(([cat, arr]) => {
+   const filtered = arr.filter(x=>x.toLowerCase().includes(q));
+   if(!filtered.length) return;
+   const div = document.createElement("div"); div.className="category";
+   div.innerHTML = `<h3>${cat} (${filtered.length})</h3><ul>${[...new Set(filtered)].sort().map(x=>`<li>${x}</li>`).join('')}</ul>`;
+   listDiv.appendChild(div);
+ });
 
-  function autoCapitalize(str){ return str.replace(/\b\w/g,l => l.toUpperCase()); }
+ const labels = []; const data = [];
+ Object.entries(categories).forEach(([k,v])=>{if(v.length){labels.push(k);data.push(v.length);}});
 
-  function categorize(name){
-    const n=name.toLowerCase();
-    if(n.includes("trapdoor")) return "Trapdoors";
-    if(n.includes(" door") && !n.includes("trapdoor")) return "Doors";
-    if(n.includes("ore")) return "Ores";
-    if(n==="bat"||n==="wolf") return "Mobs";
-    if(n.includes("stone")||n.includes("deepslate")||n.includes("andesite")||n.includes("diorite")||n.includes("gravel")||n.includes("sand")) return "Caves";
-    if(n.includes("bookshelf")) return "Variant Textures";
-    if(n.includes("(top)")||n.includes("(side)")||n.includes("(front)")) return "Separated Sides";
-    if(n.includes("(lit)")||n.includes("on)")||n.includes("moist")) return "Two-State Blocks";
-    if(n.includes("overlay")||n.includes("stages")) return "Animations";
-    if(n.includes("flower")||n.includes("tulip")||n.includes("rose")||n.includes("daisy")||n.includes("orchid")||n.includes("grass")||n.includes("fern")||n.includes("leaves")||n.includes("sapling")||n.includes("vines")||n.includes("mushroom")||n.includes("cactus")||n.includes("cane")||n.includes("petals")||n.includes("propagule")) return "Nature";
-    if(n.includes("candle")||n.includes("bell")||n.includes("terracotta")||n.includes("pumpkin")||n.includes("flower pot")||n.includes("glowstone")) return "Decoration";
-    if(n.includes("elytra")||n.includes("minecart")||n.includes("item frame")||n.includes("torch")||n.includes("rail")) return "Items";
-    if(n.includes("planks")||n.includes("log")||n.includes("brick")||n.includes("glass")||n.includes("ice")||n.includes("snow")) return "Building Blocks";
-    return "Other";
-  }
+ const ctx = document.getElementById('chart').getContext('2d');
+ if(window.pieChart) window.pieChart.destroy();
+ window.pieChart = new Chart(ctx, {
+   type: 'pie',
+   data: { labels, datasets:[{ data, backgroundColor: labels.map((_,i)=>`hsl(${i*35%360},70%,50%)`) }]},
+   options:{ responsive:true, plugins:{ legend:{labels:{color:'#fff'}}, tooltip:{callbacks:{label:ctx=>{const t=data.reduce((a,b)=>a+b,0);const v=ctx.raw;const p=((v/t)*100).toFixed(1);return `${ctx.label}: ${v} (${p}%)`;}}}}}
+ });
+}
 
-  function buildCategories(){
-    const map = {};
-    CATEGORY_NAMES.forEach(c => map[c]=[]);
-    const combined = [...baseItems.map(n=>({name:n})), ...communityItems];
-    combined.forEach(obj => { const cat = obj.category || categorize(obj.name); map[cat].push(obj); });
-    return map;
-  }
+document.getElementById("search").addEventListener("input",render);
+render();
 
-  let chart;
-  function render(){
-    const categories = buildCategories();
-    const total = Object.values(categories).flat().length;
-    document.getElementById("sortedTitle").textContent = `Sorted List (${total})`;
-
-    const q = document.getElementById("search").value.toLowerCase();
-    const listDiv = document.getElementById("list");
-    listDiv.innerHTML = "";
-
-    Object.entries(categories).forEach(([cat, arr]) => {
-      const filtered = arr.filter(x => x.name.toLowerCase().includes(q));
-      if(!filtered.length) return;
-      const div = document.createElement("div");
-      div.className = "category";
-      const listHTML = filtered.sort((a,b)=>a.name.localeCompare(b.name)).map(obj=>{
-        const isCommunity=obj.fromCommunity;
-        const label=isCommunity ? `${obj.name} (submitted by community member)` : obj.name;
-        const delBtn = isCommunity ? `<span class=\"deleteBtn\" data-id=\"${obj.id}\">Delete</span>` : "";
-        return `<li>${label} ${delBtn}</li>`;
-      }).join("");
-      div.innerHTML = `<h3>${cat} (${filtered.length})</h3><ul>${listHTML}</ul>`;
-      listDiv.appendChild(div);
-    });
-
-    // delegate delete clicks
-    listDiv.querySelectorAll('.deleteBtn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        await deleteItem(id);
-      });
-    });
-
-    const labels=[]; const data=[];
-    Object.entries(categories).forEach(([k,v])=>{if(v.length){labels.push(k);data.push(v.length);}});
-
-    if(chart) chart.destroy();
-    chart = new Chart(document.getElementById('pie'), {
-      type: 'pie',
-      data: {labels, datasets:[{data, backgroundColor:labels.map((_,i)=>`hsl(${i*30%360},70%,50%)`)}]},
-      options: { plugins:{legend:{labels:{color:'#fff'}}, tooltip:{callbacks:{label:(ctx)=>{const total=data.reduce((a,b)=>a+b,0);const val=ctx.raw;const pct=((val/total)*100).toFixed(1);return`${ctx.label}: ${val} (${pct}%)`;}}}}}
-    });
-  }
-
-  async function loadCommunity(){
-    try{
-      const snap = await getDocs(collection(db,"blocks"));
-      communityItems = snap.docs.map(d=>({id:d.id,name:d.data().name,category:d.data().category,fromCommunity:true}));
-      render();
-    } catch(e){
-      console.log("Firebase not loaded, showing base pie chart only.");
-      render();
-    }
-  }
-
-  async function addBlock(){
-    let name = document.getElementById("nameInput").value.trim();
-    const cat = document.getElementById("catInput").value;
-    if(!name) return alert("Enter a name");
-    name = autoCapitalize(name);
-    await addDoc(collection(db,"blocks"), {name, category:cat});
-    document.getElementById("nameInput").value="";
-    await loadCommunity();
-  }
-
-  async function deleteItem(id){
-    if(!confirm("Delete this community item?")) return;
-    await deleteDoc(doc(db,"blocks",id));
-    await loadCommunity();
-  }
-
-  // Bind events AFTER functions exist (fixes ReferenceError)
-  document.getElementById("submitBtn").addEventListener("click", addBlock);
-  document.getElementById("search").addEventListener("input", render);
-
-  // initial render
-  render();
-  loadCommunity();
+});
 </script>
 </body>
 </html>
